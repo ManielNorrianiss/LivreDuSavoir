@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gardien du Lore — Fléau</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blood: #8B1A1A;
+    --gold: #C9A84C;
+    --parchment: #F2E8D5;
+    --dark: #0D0A07;
+    --rune: #6B3FA0;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--dark);
+    color: var(--parchment);
+    font-family: 'Crimson Pro', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(139,26,26,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(107,63,160,0.08) 0%, transparent 40%);
+    pointer-events:none; z-index:0;
+  }
+  body::after {
+    content:'✦ ᚠ ✦ ᚢ ✦ ᚦ ✦ ᚨ ✦ ᚱ ✦ ᚲ ✦ ᚷ ✦ ᚹ ✦ ᚺ ✦ ᚾ ✦';
+    position:fixed; top:0; left:0; right:0;
+    text-align:center; font-size:10px; letter-spacing:4px;
+    color:rgba(201,168,76,0.18); padding:7px;
+    z-index:1; pointer-events:none;
+  }
+  .container {
+    position:relative; z-index:2;
+    max-width:860px; margin:0 auto;
+    padding:52px 24px 32px;
+    display:flex; flex-direction:column; min-height:100vh;
+  }
+
+  /* HEADER */
+  header { text-align:center; margin-bottom:24px; animation:fadeDown .7s ease; }
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
+  .sigil { font-size:32px; margin-bottom:10px; filter:drop-shadow(0 0 10px rgba(201,168,76,.6)); animation:flicker 5s ease-in-out infinite; }
+  @keyframes flicker { 0%,94%,100%{opacity:1} 95%{opacity:.6} 97%{opacity:1} }
+  h1 { font-family:'Cinzel Decorative',cursive; font-size:clamp(18px,3.5vw,28px); color:var(--gold); letter-spacing:3px; text-shadow:0 0 28px rgba(201,168,76,.35); margin-bottom:4px; }
+  .subtitle { font-size:13px; color:rgba(242,232,213,.38); letter-spacing:4px; text-transform:uppercase; font-style:italic; }
+
+  /* STATUS BANNER */
+  .status-banner {
+    display:flex; align-items:center; gap:10px; justify-content:center;
+    font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
+    padding:8px 16px; border-radius:2px; margin-bottom:10px; transition:all .5s ease;
+  }
+  .status-banner.loading { background:rgba(201,168,76,.07); border:1px solid rgba(201,168,76,.18); color:rgba(242,232,213,.45); }
+  .status-banner.ready   { background:rgba(40,80,40,.15);   border:1px solid rgba(80,160,80,.25);  color:rgba(140,200,140,.8); }
+  .status-banner.error   { background:rgba(139,26,26,.14);  border:1px solid rgba(139,26,26,.3);   color:rgba(220,120,120,.8); }
+  .status-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .loading .status-dot { background:var(--gold); animation:pulse 1.2s ease-in-out infinite; }
+  .ready   .status-dot { background:#5cb85c; }
+  .error   .status-dot { background:#c0392b; }
+  @keyframes pulse { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:1;transform:scale(1.5)} }
+
+  /* PROGRESS BAR */
+  .progress-bar { height:2px; background:rgba(201,168,76,.1); border-radius:1px; margin-bottom:18px; overflow:hidden; }
+  .progress-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--blood),var(--gold)); border-radius:1px; transition:width .6s ease; }
+
+  /* QUICK BUTTONS */
+  .quick-searches { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:18px; justify-content:center; animation:fadeUp .7s ease .15s both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .quick-btn {
+    background:rgba(201,168,76,.06); border:1px solid rgba(201,168,76,.18);
+    color:rgba(242,232,213,.6); padding:5px 13px; border-radius:2px;
+    font-family:'Crimson Pro',serif; font-size:13px; cursor:pointer;
+    transition:all .18s; letter-spacing:.4px;
+  }
+  .quick-btn:hover:not(:disabled) { background:rgba(201,168,76,.14); border-color:rgba(201,168,76,.45); color:var(--gold); transform:translateY(-1px); }
+  .quick-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+  /* CHAT */
+  .chat-area { flex:1; display:flex; flex-direction:column; margin-bottom:18px; animation:fadeUp .7s ease .25s both; }
+  .messages { flex:1; display:flex; flex-direction:column; gap:18px; overflow-y:auto; padding:4px 0; max-height:460px; }
+  .messages::-webkit-scrollbar { width:3px; }
+  .messages::-webkit-scrollbar-thumb { background:rgba(201,168,76,.18); border-radius:2px; }
+
+  .welcome-msg { background:linear-gradient(135deg,rgba(139,26,26,.1),rgba(26,17,8,.5)); border:1px solid rgba(139,26,26,.25); border-left:3px solid var(--blood); padding:18px 22px; border-radius:2px; }
+  .welcome-msg p { font-size:15px; line-height:1.75; color:rgba(242,232,213,.82); font-style:italic; }
+  .welcome-msg strong { color:var(--gold); font-style:normal; }
+
+  .msg { display:flex; flex-direction:column; gap:5px; animation:msgIn .3s ease; }
+  @keyframes msgIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+  .msg.user  { align-items:flex-end; }
+  .msg.agent { align-items:flex-start; }
+  .msg-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; opacity:.32; padding:0 4px; }
+  .msg-bubble { max-width:88%; padding:13px 17px; border-radius:2px; line-height:1.75; font-size:15px; }
+  .msg.user  .msg-bubble { background:rgba(201,168,76,.09); border:1px solid rgba(201,168,76,.22); color:var(--parchment); border-bottom-right-radius:0; }
+  .msg.agent .msg-bubble { background:linear-gradient(135deg,rgba(26,17,8,.8),rgba(13,10,7,.9)); border:1px solid rgba(139,26,26,.22); border-left:2px solid var(--blood); color:rgba(242,232,213,.9); border-bottom-left-radius:0; }
+  .msg.agent .msg-bubble strong { color:var(--gold); }
+  .msg.agent .msg-bubble em { color:rgba(201,168,76,.7); }
+  .msg.agent .msg-bubble ul { padding-left:18px; margin:6px 0; }
+  .msg.agent .msg-bubble li { margin:3px 0; }
+
+  .thinking { display:flex; align-items:center; gap:10px; padding:13px 17px; background:rgba(26,17,8,.6); border:1px solid rgba(139,26,26,.18); border-left:2px solid var(--blood); max-width:180px; border-radius:2px; }
+  .thinking span { font-size:13px; color:rgba(242,232,213,.38); font-style:italic; letter-spacing:1px; }
+  .rune-spin { animation:runespin 1.8s linear infinite; font-size:15px; color:var(--gold); opacity:.55; display:inline-block; }
+  @keyframes runespin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  /* INPUT */
+  .input-area { display:flex; flex-direction:column; gap:8px; animation:fadeUp .7s ease .35s both; }
+  .input-row { display:flex; gap:8px; background:rgba(26,17,8,.85); border:1px solid rgba(201,168,76,.18); border-radius:2px; padding:3px 3px 3px 14px; transition:border-color .2s; }
+  .input-row:focus-within { border-color:rgba(201,168,76,.45); box-shadow:0 0 18px rgba(201,168,76,.05); }
+  textarea { flex:1; background:transparent; border:none; color:var(--parchment); font-family:'Crimson Pro',serif; font-size:16px; resize:none; outline:none; padding:10px 0; line-height:1.5; min-height:46px; max-height:110px; }
+  textarea::placeholder { color:rgba(242,232,213,.18); font-style:italic; }
+  .send-btn { background:linear-gradient(135deg,var(--blood),#6B1111); border:none; color:var(--gold); width:46px; height:46px; align-self:flex-end; border-radius:1px; cursor:pointer; font-size:19px; transition:all .18s; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .send-btn:hover:not(:disabled) { background:linear-gradient(135deg,#A01F1F,var(--blood)); transform:translateY(-1px); box-shadow:0 4px 14px rgba(139,26,26,.4); }
+  .send-btn:disabled { opacity:.35; cursor:not-allowed; }
+  .hint { text-align:center; font-size:11px; color:rgba(242,232,213,.16); letter-spacing:1px; }
+  .error-bubble { background:rgba(139,26,26,.14); border:1px solid rgba(139,26,26,.35); border-left:2px solid var(--blood); padding:11px 15px; border-radius:2px; font-size:14px; color:rgba(242,232,213,.65); font-style:italic; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="sigil">⚔️</div>
+    <h1>Gardien du Lore</h1>
+    <p class="subtitle">Oracle de Fléau · 30 ans de mémoire</p>
+  </header>
+
+  <div class="status-banner loading" id="statusBanner">
+    <div class="status-dot"></div>
+    <span id="statusText">Lecture du Lore Master depuis Google Drive…</span>
+  </div>
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <div class="quick-searches">
+    <button class="quick-btn" disabled id="btn0" onclick="quickSearch('Qui sont les Mori et leurs familles importantes ?')">🧝 Mori</button>
+    <button class="quick-btn" disabled id="btn1" onclick="quickSearch('Parle-moi d\'Eldoriath')">🌲 Eldoriath</button>
+    <button class="quick-btn" disabled id="btn2" onclick="quickSearch('Qu\'est-ce que la Crypte ?')">💀 Crypte</button>
+    <button class="quick-btn" disabled id="btn3" onclick="quickSearch('Les Nazzakri et leurs intrigues')">⚔️ Nazzakri</button>
+    <button class="quick-btn" disabled id="btn4" onclick="quickSearch('L\'Underdark et ses dangers')">🕳️ Underdark</button>
+    <button class="quick-btn" disabled id="btn5" onclick="quickSearch('Pandor et leur structure')">🏰 Pandor</button>
+    <button class="quick-btn" disabled id="btn6" onclick="quickSearch('Quels arcs d\'intrigue sont actifs en 2026 ?')">📜 Intrigues 2026</button>
+    <button class="quick-btn" disabled id="btn7" onclick="quickSearch('Les races et leurs traits raciaux')">⚡ Races</button>
+  </div>
+
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome-msg" id="welcomeMsg">
+        <p>⏳ <strong>Chargement en cours…</strong><br><br>
+        Je lis le <strong>Lore Master de Fléau</strong> depuis ton Google Drive. Dans quelques secondes, tu pourras m'interroger sur n'importe quel peuple, PNJ, lieu ou intrigue — et les réponses seront instantanées.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <textarea id="userInput" placeholder="Chargement des archives…" disabled
+        onkeydown="handleKey(event)" oninput="autoResize(this)" rows="1"></textarea>
+      <button class="send-btn" id="sendBtn" disabled onclick="sendMessage()">⚡</button>
+    </div>
+    <p class="hint">Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
+  </div>
+
+</div>
+<script>
+  // ─── CONFIG ───────────────────────────────────────────────
+  const LORE_MASTER_ID = '10gRbaGn__2Htq5VtoAczb-RBU10a_XcTYAiDw9xotBw';
+  const MODEL_FAST     = 'claude-haiku-4-5-20251001';
+  const DRIVE_MCP      = { type:'url', url:'https://drivemcp.googleapis.com/mcp/v1', name:'google-drive' };
+
+  const SYSTEM_BASE = `Tu es le Gardien du Lore de Fléau, un GN (grandeur nature) narratif et immersif québécois actif depuis 30 ans.
+Tu as mémorisé le Lore Master complet de Fléau. Tu réponds en puisant dedans directement — pas d'appels externes.
+
+RÈGLES :
+- Réponds en français, structuré et clair
+- Voix de sage gardien des archives : précis, sérieux, légèrement mystique
+- Si une info est absente du Lore Master, dis-le — ne jamais inventer
+- Distingue lore historique et intrigues actives 2026
+- Commence directement, sans préambule
+- **Gras** pour noms et titres importants`;
+
+  // ─── STATE ────────────────────────────────────────────────
+  let loreContext = '';
+  let history     = [];
+  let busy        = false;
+  let ready       = false;
+
+  // ─── PROGRESS ─────────────────────────────────────────────
+  function setProgress(pct) {
+    document.getElementById('progressFill').style.width = pct + '%';
+  }
+  function setStatus(state, text) {
+    const b = document.getElementById('statusBanner');
+    b.className = 'status-banner ' + state;
+    document.getElementById('statusText').textContent = text;
+    if (state !== 'loading') {
+      setTimeout(() => document.getElementById('progressBar').style.opacity = '0', 800);
+    }
+  }
+
+  // ─── LOAD LORE MASTER AT STARTUP ─────────────────────────
+  async function loadLore() {
+    setProgress(15);
+    try {
+      setProgress(40);
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: MODEL_FAST,
+          max_tokens: 500,
+          system: 'Lis le fichier Google Drive demandé et retourne son contenu texte complet, sans aucun commentaire ni formatage supplémentaire.',
+          messages: [{ role:'user', content:`Lis le contenu complet du fichier Google Drive ID: ${LORE_MASTER_ID}` }],
+          mcp_servers: [DRIVE_MCP]
+        })
+      });
+
+      setProgress(75);
+      const data = await res.json();
+
+      // Extraire tout le texte — blocs text + résultats MCP
+      const parts = (data.content || []).map(b => {
+        if (b.type === 'text') return b.text;
+        if (b.type === 'mcp_tool_result') return b.content?.[0]?.text || '';
+        return '';
+      }).filter(Boolean);
+
+      const extracted = parts.join('\n').trim();
+
+      setProgress(100);
+
+      if (extracted.length > 300) {
+        loreContext = extracted;
+        setStatus('ready', '✦ Archives chargées — réponses instantanées');
+        showWelcomeReady();
+      } else {
+        throw new Error('Contenu insuffisant');
+      }
+
+    } catch (err) {
+      console.warn('Fallback lore:', err);
+      loreContext = FALLBACK_LORE;
+      setProgress(100);
+      setStatus('ready', '✦ Archives chargées (mode local)');
+      showWelcomeReady(true);
+    }
+
+    enableUI();
+  }
+
+  function showWelcomeReady(fallback = false) {
+    const w = document.getElementById('welcomeMsg');
+    if (!w) return;
+    w.innerHTML = fallback
+      ? `<p>Je suis le <strong>Gardien du Lore</strong> de Fléau — archives chargées en mode local.<br><br>
+         Pose-moi une question ou donne-moi un nom. Les réponses arrivent maintenant sans délai.</p>`
+      : `<p>Je suis le <strong>Gardien du Lore</strong> de Fléau. J'ai lu ton <strong>Lore Master</strong> depuis Google Drive — il est maintenant en mémoire.<br><br>
+         Pose-moi une question ou donne-moi un nom — peuple, personnage, lieu, artefact. Les réponses arrivent sans délai.</p>`;
+  }
+
+  function enableUI() {
+    ready = true;
+    const input = document.getElementById('userInput');
+    input.disabled = false;
+    input.placeholder = 'Qui est Selvetarm ? Quel lien entre les Mori et l\'Underdark ?…';
+    document.getElementById('sendBtn').disabled = false;
+    document.querySelectorAll('.quick-btn').forEach(b => b.disabled = false);
+    input.focus();
+  }
+
+  // ─── SEND MESSAGE — no Drive call, lore already in memory ─
+  async function sendMessage() {
+    const input = document.getElementById('userInput');
+    const query = input.value.trim();
+    if (!query || busy || !ready) return;
+
+    busy = true;
+    input.value = '';
+    autoResize(input);
+    document.getElementById('sendBtn').disabled = true;
+
+    // Hide welcome on first message
+    const w = document.getElementById('welcomeMsg');
+    if (w) w.style.display = 'none';
+
+    addMsg('user', query);
+    history.push({ role:'user', content: query });
+    addThinking();
+
+    try {
+      const systemWithLore = SYSTEM_BASE + '\n\n━━━ LORE MASTER FLÉAU ━━━\n' + loreContext;
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: MODEL_FAST,
+          max_tokens: 800,
+          system: systemWithLore,
+          messages: history
+        })
+      });
+
+      const data = await res.json();
+      const answer = data.content?.find(b => b.type === 'text')?.text
+                     || 'Aucune réponse obtenue des archives.';
+
+      removeThinking();
+      addMsg('agent', answer);
+      history.push({ role:'assistant', content: answer });
+
+    } catch (err) {
+      removeThinking();
+      console.error(err);
+      addError('⚠️ Erreur de connexion. Vérifie ta connexion internet.');
+    }
+
+    busy = false;
+    document.getElementById('sendBtn').disabled = false;
+    input.focus();
+  }
+
+  // ─── UI HELPERS ───────────────────────────────────────────
+  function addMsg(role, text) {
+    const msgs = document.getElementById('messages');
+    const div  = document.createElement('div');
+    div.className = `msg ${role === 'user' ? 'user' : 'agent'}`;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'msg-label';
+    lbl.textContent = role === 'user' ? '— vous' : '— Gardien du Lore';
+
+    const bub = document.createElement('div');
+    bub.className = 'msg-bubble';
+    bub.innerHTML = fmt(text);
+
+    div.appendChild(lbl);
+    div.appendChild(bub);
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function fmt(t) {
+    return '<p>' + t
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g,     '<em>$1</em>')
+      .replace(/^- (.+)$/gm,    '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g,   '<br>')
+      + '</p>';
+  }
+
+  function addThinking() {
+    const msgs = document.getElementById('messages');
+    const div  = document.createElement('div');
+    div.className = 'msg agent'; div.id = 'thinkingMsg';
+    const lbl  = document.createElement('div');
+    lbl.className = 'msg-label'; lbl.textContent = '— Gardien du Lore';
+    const t    = document.createElement('div');
+    t.className = 'thinking';
+    t.innerHTML = '<span class="rune-spin">ᚠ</span><span>Consultation…</span>';
+    div.appendChild(lbl); div.appendChild(t);
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function removeThinking() {
+    const t = document.getElementById('thinkingMsg');
+    if (t) t.remove();
+  }
+
+  function addError(msg) {
+    const msgs = document.getElementById('messages');
+    const div  = document.createElement('div');
+    div.className = 'msg agent';
+    div.innerHTML = `<div class="error-bubble">${msg}</div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function quickSearch(q) {
+    document.getElementById('userInput').value = q;
+    sendMessage();
+  }
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 110) + 'px';
+  }
+
+  // ─── FALLBACK LORE (si Drive inaccessible) ────────────────
+  const FALLBACK_LORE = `FLÉAU — GN narratif québécois, ~30 ans d'existence.
+
+PEUPLES: Mori (Moriquendi/Drows, Underdark), Eldoriath (elfes surface), Nazzakri (orques/loups-garous/gobelins), Pandor (humains/Couronne), Lossado (inspiration asiatique), Peuple des Sables (dieux égyptiens), Numénor, Horde du Chaos, Oz (Ozzolo Ventreen), Khazad/Nains.
+
+MORI: Familles Vorn (assassins), Norrianiss (prophètes), Drehjur, Izdontno. Divinités: Araushnée, Selvetarm, Kiaransalee. 3PV jour / 7PV nuit. Capitale dans l'Underdark.
+
+SELVETARM: Drow légendaire, jumeau d'Abigor (tué accidentellement), sœur Kiaransalee, mentor onirique Eilistraee. Épée de Selvetarm = artefact majeur actif en 2026.
+
+UNDERDARK: Upperdark / Middledark / Lowerdark. Créatures: Beholder, Ulitharid, Illithid, Elder Brain, Duergar, Kuotoa. Sauvegarde INT ou SAG à chaque strate.
+
+CRYPTE: Zone centrale neutre du GN. Couronne de Morgoth (possession si roche-papier-ciseaux perdu), Loup-garou du Néant.
+
+INTRIGUES 2026: Épée de Selvetarm, anneaux de Sauron (Cardinal des Sept → Nazzakri), Arwen vers la lumière (Eldoriath), Couronne de Morgoth (Crypte), Elder Brain (Lossado), installation Dracius/Témériens.
+
+DÉMONS: Chacals, démons bleus, homme scorpion, crocodile de Sobek, siths, kitsune, kamis, anges noirs, dryder, nemesis, marionnettiste, beorn, rakshasa.
+
+RACES: Elfe (résistance sommeil), Nain (+2PV, immunité poison), Elfe Noir (immunité paralysie, 3/7PV), Humain (habileté bonus lune 6), Kender (immunité frayeur), Moriquendie (immunité charme), Orque Vert (7PV, immunité frayeur), Orque Noir (8PV, immunité douleur+frayeur), Goblin (4PV).
+
+ANIMATEURS: Bibitte, Coco, Eli, Yuki, Danielle, Mathieu Croteau, Zuljin, Wolfie, Alex, Thorn, Martin, Nancy, Josh.`;
+
+  // ─── BOOT ─────────────────────────────────────────────────
+  loadLore();
+</script>
+</body>
+</html>
+
